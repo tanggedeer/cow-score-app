@@ -1,0 +1,69 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install cython
+    
+    - name: Setup buildozer
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential libssl-dev libffi-dev python3-dev
+        sudo apt install -y zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5
+        sudo apt install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+        pip install buildozer cython
+    
+    - name: Create buildozer.spec
+      run: |
+        echo "[app]
+        title = 奶牛体况评分
+        package.name = cowscoreapp
+        package.domain = com.example
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,atlas,ttf
+        version = 1.0
+        requirements = python3,kivy==2.1.0,openpyxl,pyjnius
+        android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
+        android.api = 30
+        android.minapi = 21
+        android.sdk = 24
+        android.ndk = 23b
+        android.arch = armeabi-v7a
+        orientation = landscape
+        fullscreen = 0
+        source.include_patterns = *.ttf,*.otf
+
+        [buildozer]
+        log_level = 2" > buildozer.spec
+    
+    - name: Initialize buildozer
+      run: |
+        buildozer init
+    
+    - name: Build APK
+      run: |
+        buildozer android debug
+    
+    - name: Upload APK
+      uses: actions/upload-artifact@v2
+      with:
+        name: app-debug
+        path: bin/*.apk
