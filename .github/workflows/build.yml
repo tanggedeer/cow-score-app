@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # 使用 Ubuntu 20.04 而不是最新的
     
     steps:
     - uses: actions/checkout@v3
@@ -16,20 +16,21 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.8'
+        python-version: '3.9'
     
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install cython
-    
-    - name: Setup buildozer
+    - name: Install system dependencies
       run: |
         sudo apt update
         sudo apt install -y build-essential libssl-dev libffi-dev python3-dev
-        sudo apt install -y zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5
+        sudo apt install -y zlib1g-dev libncurses5-dev libncursesw5-dev
         sudo apt install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
-        pip install buildozer cython
+        sudo apt install -y libffi7
+    
+    - name: Install Python dependencies
+      run: |
+        pip install --upgrade pip
+        pip install cython==0.29.30
+        pip install buildozer kivy==2.1.0 openpyxl pyjnius
     
     - name: Create buildozer.spec
       run: |
@@ -54,16 +55,14 @@ jobs:
         [buildozer]
         log_level = 2" > buildozer.spec
     
-    - name: Initialize buildozer
-      run: |
-        buildozer init
-    
     - name: Build APK
       run: |
         buildozer android debug
+      timeout-minutes: 60
     
     - name: Upload APK
-      uses: actions/upload-artifact@v4  # 更新到v4版本
+      uses: actions/upload-artifact@v4
       with:
         name: app-debug
         path: bin/*.apk
+        if-no-files-found: warn
